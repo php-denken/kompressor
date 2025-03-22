@@ -75,14 +75,18 @@ mkdir -p "$DEST_DIR"
 if [ "$RUN_IMAGE_COMPRESSION" = true ]; then
     # Find and compress images
     find "$SOURCE_DIR" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) | while read FILE; do
-            REL_PATH="${FILE#$SOURCE_DIR/}"  
+            # Get relative path by removing source dir and leading slash
+            REL_PATH="${FILE#$SOURCE_DIR}"
+            REL_PATH="${REL_PATH#/}"
+            
             DEST_FILE="$DEST_DIR/$REL_PATH"
             DEST_FOLDER="$(dirname "$DEST_FILE")"
 
             mkdir -p "$DEST_FOLDER"
+            log_message "Creating directory: $DEST_FOLDER"
 
             convert "$FILE" -resize ${IMAGE_RESOLUTION}\> -define jpeg:extent=$MAX_FILE_SIZE "$DEST_FILE"
-            log_message "Image compressed: $DEST_FILE"
+            log_message "Image compressed: $REL_PATH"
     done
 fi
 
@@ -94,11 +98,16 @@ if [ "$RUN_VIDEO_COMPRESSION" = true ]; then
     log_message "Compressing videos from: $SOURCE_DIR"
     find "$SOURCE_DIR" -type f \( -iname "*.mp4" -o -iname "*.mov" -o -iname "*.avi" \) -print0 | 
     while IFS= read -r -d $'\0' FILE; do
-        REL_PATH="${FILE#$SOURCE_DIR/}"
-        DEST_FILE="$DEST_DIR/${REL_PATH%.*}.mp4"
-        DEST_FOLDER="$(dirname "$DEST_FILE")"
+            # Get relative path by removing source dir and leading slash
+            REL_PATH="${FILE#$SOURCE_DIR}"
+            REL_PATH="${REL_PATH#/}"
+            
+            DEST_FILE="$DEST_DIR/$REL_PATH"
+            DEST_FILE="${DEST_FILE%.*}.mp4"  # Force .mp4 extension
+            DEST_FOLDER="$(dirname "$DEST_FILE")"
 
-        mkdir -p "$DEST_FOLDER"
+            mkdir -p "$DEST_FOLDER"
+            log_message "Creating directory: $DEST_FOLDER"
 
         if [ -f "$DEST_FILE" ]; then
             log_message "Skipping existing file: $DEST_FILE"
