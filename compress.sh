@@ -4,9 +4,30 @@ set -e  # Exit on error
 #set -x  # Debug mode
 
 # Configuration
+CONFIG_FILE="compress.conf"
+
+if [ ! -f "$CONFIG_FILE" ]; then
+    cat > "${CONFIG_FILE}" << EOL
 SOURCE_DIR="examples/input"
 DEST_DIR="examples/output"
 LOG_FILE="compression.log"
+EOL
+    echo "Error: Config file not found at $CONFIG_FILE"
+    echo "A config file has been created at ${CONFIG_FILE}"
+    echo "Please edit it e.g.: vi ${CONFIG_FILE}"
+    echo "Update file locations"
+    exit 1
+fi
+
+# Check if config still has default values
+if grep -q "webdav.example.com\|your_username\|your_password" "$CONFIG_FILE"; then
+    echo "Error: Config file still contains default values"
+    echo -e "\e[31mPlease edit it e.g.: vi ${CONFIG_FILE}\e[0m"
+    echo "Update file locations"
+    exit 1
+fi
+
+source "$CONFIG_FILE"
 
 # Function to log messages
 log_message() {
