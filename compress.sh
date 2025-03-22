@@ -19,14 +19,6 @@ EOL
     exit 1
 fi
 
-# Check if config still has default values
-if grep -q "webdav.example.com\|your_username\|your_password" "$CONFIG_FILE"; then
-    echo "Error: Config file still contains default values"
-    echo -e "\e[31mPlease edit it e.g.: vi ${CONFIG_FILE}\e[0m"
-    echo "Update file locations"
-    exit 1
-fi
-
 source "$CONFIG_FILE"
 
 # Function to log messages
@@ -52,6 +44,14 @@ VIDEO_SCALE="1280:720" # Target resolution for videos
 RUN_IMAGE_COMPRESSION=false
 RUN_VIDEO_COMPRESSION=false
 
+if [ $# -eq 0 ]; then
+    echo "Error: No arguments provided"
+    echo "Usage: $0 [-i] [-v]"
+    echo "  -i    Run image compression"
+    echo "  -v    Run video compression"
+    exit 1
+fi
+
 while getopts "iv" opt; do
     case $opt in
         i)
@@ -69,6 +69,12 @@ while getopts "iv" opt; do
     esac
 done
 
+if [ "$RUN_IMAGE_COMPRESSION" = false ] && [ "$RUN_VIDEO_COMPRESSION" = false ]; then
+    echo "Error: Must specify either -i for image compression or -v for video compression"
+    echo "Usage: $0 [-i] [-v]"
+    exit 1
+fi
+
 # Create destination directory if it doesn't exist
 mkdir -p "$DEST_DIR"
 
@@ -85,7 +91,19 @@ if [ "$RUN_IMAGE_COMPRESSION" = true ]; then
             mkdir -p "$DEST_FOLDER"
             log_message "Creating directory: $DEST_FOLDER"
 
-            convert "$FILE" -resize ${IMAGE_RESOLUTION}\> -define jpeg:extent=$MAX_FILE_SIZE "$DEST_FILE"
+            # Validate image file
+            if ! identify "$FILE" >/dev/null 2>&1; then
+                log_message "Error: Invalid or corrupted image file: $FILE"
+                continue
+            fi
+
+            # Attempt conversion with error handling
+            if ! convert "$FILE" -resize ${IMAGE_RESOLUTION}\> -define jpeg:extent=$MAX_FILE_SIZE "$DEST_FILE" 2>/tmp/convert_error; then
+                ERROR_MSG=$(cat /tmp/convert_error)
+                log_message "Error converting $FILE: $ERROR_MSG"
+                continue
+            fi
+            
             log_message "Image compressed: $REL_PATH"
     done
 fi

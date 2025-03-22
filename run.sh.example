@@ -1,0 +1,7 @@
+#!/bin/bash
+
+rm -rf examples/input/NEXTCLOUD-USER/files/SofortUpload/Camera/2024/
+
+rsync -avz USER@192.168.188.76:/media/storage/nextcloud/data/NEXTCLOUD-USER/files/SofortUpload/Camera/2024/ examples/input/NEXTCLOUD-USER/files/SofortUpload/Camera/2024/
+
+./compress.sh -iv
