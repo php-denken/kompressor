@@ -33,7 +33,7 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
 fi
 
 # Quality settings
-IMAGE_RESOLUTION="1024x1024"
+IMAGE_RESOLUTION="1600x1600"
 MAX_FILE_SIZE="300k"   # Maximum file size for compressed images
 
 # Video compression settings
@@ -98,9 +98,17 @@ if [ "$RUN_IMAGE_COMPRESSION" = true ]; then
             fi
 
             # Attempt conversion with error handling
-            if ! convert "$FILE" -resize ${IMAGE_RESOLUTION}\> -define jpeg:extent=$MAX_FILE_SIZE "$DEST_FILE" 2>/tmp/convert_error; then
+            # Step 1: Resize the image
+            if ! convert "$FILE" -resize ${IMAGE_RESOLUTION}\> "$DEST_FILE" 2>/tmp/convert_error; then
                 ERROR_MSG=$(cat /tmp/convert_error)
-                log_message "Error converting $FILE: $ERROR_MSG"
+                log_message "Error resizing $FILE: $ERROR_MSG"
+                continue
+            fi
+
+            # Step 2: Reduce the file size
+            if ! jpegoptim --size=$MAX_FILE_SIZE "$DEST_FILE" 2>/tmp/convert_error; then
+                ERROR_MSG=$(cat /tmp/convert_error)
+                log_message "Error reducing file size of $FILE: $ERROR_MSG"
                 continue
             fi
             
